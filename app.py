@@ -19,122 +19,118 @@ authenticator = stauth.Authenticate(
 )
 
 # ---- LOGIN ----
-auth_result = authenticator.login(location="main")
+name, authentication_status, username = authenticator.login(
+    form_name="Login",
+    location="main"
+)
 
-if auth_result is None:
-    st.warning("Please enter your username and password")
-    st.stop()
+if authentication_status:
+    authenticator.logout("Logout", location="sidebar")
 
-if not auth_result["authenticated"]:
-    st.error("Username/password is incorrect")
-    st.stop()
+    # ---- PAGE CONFIG ----
+    st.set_page_config(page_title="Salesmen Spartan Board", layout="centered")
+    st.title("Salesmen Spartan Board")
+    st.caption("St. Francis de Sales — PRAY FOR US 🙏")
+    st.success(f"Welcome, {name}!")
 
-name = auth_result["name"]
-username = auth_result["username"]
+    # ---- DATA SETUP ----
+    today = date.today().isoformat()
+    DATA_FILE = "data.json"
 
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            saved_data = json.load(f)
+    else:
+        saved_data = {}
 
-if authentication_status is False:
-    st.error("Username/password is incorrect")
-    st.stop()
-elif authentication_status is None:
-    st.warning("Please enter your username and password")
-    st.stop()
+    user_day_key = f"{username}_{today}"
 
-authenticator.logout("Logout", location="sidebar")
+    def generate_tasks():
+        all_tasks = [
+            "Cold call 10 people you've never talked to",
+            "Read 10 pages of a non-fiction book",
+            "Write down 3 things you’re grateful for",
+            "Do 50 pushups (can be broken into sets)",
+            "Take a cold shower",
+            "Journal for 10 minutes",
+            "Send a thoughtful message to someone you admire",
+            "Walk 2 miles or more",
+            "Pray or meditate for 10+ minutes",
+            "Wake up before 6:00 AM",
+            "No sugar all day",
+            "Avoid social media all day"
+        ]
+        random.shuffle(all_tasks)
+        return all_tasks[:5]
 
-# ---- PAGE CONFIG ----
-st.set_page_config(page_title="Salesmen Spartan Board", layout="centered")
-st.title("Salesmen Spartan Board")
-st.caption("St. Francis de Sales — PRAY FOR US 🙏")
+    if user_day_key not in saved_data:
+        saved_data[user_day_key] = {
+            "tasks": generate_tasks(),
+            "completed": [False] * 5
+        }
 
-# ---- DATA SETUP ----
-today = date.today().isoformat()
-DATA_FILE = "data.json"
+    task_set = saved_data[user_day_key]
+    st.markdown(f"### Tasks for {today}")
 
-if os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "r") as f:
-        saved_data = json.load(f)
-else:
-    saved_data = {}
+    for i, task in enumerate(task_set["tasks"]):
+        checked = st.checkbox(task, value=task_set["completed"][i], key=f"task_{i}")
+        task_set["completed"][i] = checked
 
-user_day_key = f"{username}_{today}"
+    with open(DATA_FILE, "w") as f:
+        json.dump(saved_data, f, indent=2)
 
-def generate_tasks():
-    all_tasks = [
-        "Cold call 10 people you've never talked to",
-        "Read 10 pages of a non-fiction book",
-        "Write down 3 things you’re grateful for",
-        "Do 50 pushups (can be broken into sets)",
-        "Take a cold shower",
-        "Journal for 10 minutes",
-        "Send a thoughtful message to someone you admire",
-        "Walk 2 miles or more",
-        "Pray or meditate for 10+ minutes",
-        "Wake up before 6:00 AM",
-        "No sugar all day",
-        "Avoid social media all day"
-    ]
-    random.shuffle(all_tasks)
-    return all_tasks[:5]
+    def calculate_streak(user_data):
+        if not user_data:
+            return 0
+        sorted_dates = sorted(user_data.keys(), reverse=True)
+        streak = 0
+        today = datetime.today().date()
+        for date_str in sorted_dates:
+            try:
+                day = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            expected_date = today - timedelta(days=streak)
+            if day == expected_date and all(user_data[date_str]):
+                streak += 1
+            else:
+                break
+        return streak
 
-if user_day_key not in saved_data:
-    saved_data[user_day_key] = {
-        "tasks": generate_tasks(),
-        "completed": [False] * 5
+    user_history = {
+        key.split("_")[1]: val["completed"]
+        for key, val in saved_data.items()
+        if key.startswith(f"{username}_")
     }
 
-task_set = saved_data[user_day_key]
-st.markdown(f"### Tasks for {today}")
+    streak = calculate_streak(user_history)
+    st.markdown(f"🔥 **Current Streak:** {streak} day{'s' if streak != 1 else ''}")
+    completed_count = sum(task_set["completed"])
+    st.write(f"✅ You’ve completed {completed_count}/5 tasks today.")
 
-for i, task in enumerate(task_set["tasks"]):
-    checked = st.checkbox(task, value=task_set["completed"][i], key=f"task_{i}")
-    task_set["completed"][i] = checked
+    st.subheader("🏆 Leaderboard")
+    def get_user_streaks(data):
+        streaks = {}
+        for key in data:
+            if "_" not in key:
+                continue
+            user, date_str = key.rsplit("_", 1)
+            if user not in streaks:
+                user_data = {
+                    k.rsplit("_", 1)[1]: v["completed"]
+                    for k, v in data.items() if k.startswith(user + "_")
+                }
+                streaks[user] = calculate_streak(user_data)
+        return streaks
 
-with open(DATA_FILE, "w") as f:
-    json.dump(saved_data, f, indent=2)
+    user_streaks = get_user_streaks(saved_data)
+    sorted_streaks = sorted(user_streaks.items(), key=lambda x: x[1], reverse=True)
+    for rank, (user, s) in enumerate(sorted_streaks, start=1):
+        st.write(f"{rank}. **{user.capitalize()}** — 🔥 {s} day{'s' if s != 1 else ''}")
 
-def calculate_streak(user_data):
-    if not user_data:
-        return 0
-    sorted_dates = sorted(user_data.keys(), reverse=True)
-    streak = 0
-    today = datetime.today().date()
-    for date_str in sorted_dates:
-        try:
-            day = datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            continue
-        expected_date = today - timedelta(days=streak)
-        if day == expected_date and all(user_data[date_str]):
-            streak += 1
-        else:
-            break
-    return streak
+elif authentication_status is False:
+    st.error("Username/password is incorrect.")
 
-user_history = {
-    key.split("_")[1]: val["completed"]
-    for key, val in saved_data.items()
-    if key.startswith(f"{username}_")
-}
-streak = calculate_streak(user_history)
-st.markdown(f"🔥 **Current Streak:** {streak} day{'s' if streak != 1 else ''}")
-completed_count = sum(task_set["completed"])
-st.write(f"✅ You’ve completed {completed_count}/5 tasks today.")
+elif authentication_status is None:
+    st.warning("Please enter your username and password.")
 
-st.subheader("🏆 Leaderboard")
-def get_user_streaks(data):
-    streaks = {}
-    for key in data:
-        if "_" not in key:
-            continue
-        user, date_str = key.rsplit("_", 1)
-        if user not in streaks:
-            user_data = {k.rsplit("_", 1)[1]: v["completed"]
-                         for k, v in data.items() if k.startswith(user + "_")}
-            streaks[user] = calculate_streak(user_data)
-    return streaks
-
-user_streaks = get_user_streaks(saved_data)
-sorted_streaks = sorted(user_streaks.items(), key=lambda x: x[1], reverse=True)
-for rank, (user, s) in enumerate(sorted_streaks, start=1):
-    st.write(f"{rank}. **{user.capitalize()}** — 🔥 {s} day{'s' if s != 1 else ''}")

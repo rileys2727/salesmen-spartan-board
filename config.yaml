@@ -3,14 +3,9 @@ credentials:
     riley:
       name: Riley
       password: "$2b$12$gWBsDCe1KYKw.qP4HxYwZuNVVGMc2V6BAkPthU87AjiIu2/X5GY0O"
-    jake:
-      name: Jake
-      password: "$2b$12$ZEyyEITmUf0G6UMrnuldC.tWU.CyCD7YJpFiJOOnaC7MjKMxHiVDK"
-    emma:
-      name: Emma
-      password: "$2b$12$zNvN851XUPA9MiFnRnEywO.YaK1/HyxPDFQ1XPr4p7XOnNCAPiuPi"
 
 cookie:
   name: salesmen_board
   key: abcdef
   expiry_days: 30
+

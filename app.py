@@ -13,10 +13,10 @@ with open("config.yaml") as file:
 
 # ---- Initialize Authenticator ----
 authenticator = stauth.Authenticate(
-    credentials=config["credentials"],
-    cookie_name=config["cookie"]["name"],
-    key=config["cookie"]["key"],
-    cookie_expiry_days=config["cookie"]["expiry_days"]
+    config["credentials"],
+    config["cookie"]["name"],
+    config["cookie"]["key"],
+    config["cookie"]["expiry_days"]
 )
 
 # ---- Login ----

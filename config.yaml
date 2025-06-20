@@ -2,7 +2,7 @@ credentials:
   usernames:
     riley:
       name: Riley
-      password: "$2b$12$gWBsDCe1KYKw.qP4HxYwZuNVVGMc2V6BAkPthU87AjiIu2/X5GY0O"
+      password: "test"
 
 cookie:
   name: salesmen_board

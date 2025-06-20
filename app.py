@@ -19,7 +19,18 @@ authenticator = stauth.Authenticate(
 )
 
 # ---- LOGIN ----
-name, authentication_status, username = authenticator.login(location="main")
+auth_result = authenticator.login(location="main")
+
+if auth_result is None:
+    st.warning("Please enter your username and password")
+    st.stop()
+
+if not auth_result["authenticated"]:
+    st.error("Username/password is incorrect")
+    st.stop()
+
+name = auth_result["name"]
+username = auth_result["username"]
 
 
 if authentication_status is False:

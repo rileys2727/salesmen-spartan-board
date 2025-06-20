@@ -7,40 +7,41 @@ import random
 from datetime import date, datetime, timedelta
 from yaml.loader import SafeLoader
 
-# ---- CONFIGURATION FILE ----
+# ---- Load Configuration ----
 with open("config.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
 
+# ---- Initialize Authenticator ----
 authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"],
+    credentials=config["credentials"],
+    cookie_name=config["cookie"]["name"],
+    key=config["cookie"]["key"],
+    cookie_expiry_days=config["cookie"]["expiry_days"]
 )
 
-# ---- LOGIN ----
+# ---- Login ----
 auth_result = authenticator.login(location="main")
 
 if auth_result is None:
-    st.warning("Please enter your username and password")
+    st.warning("Please enter your username and password.")
     st.stop()
 
 if not auth_result["authenticated"]:
-    st.error("Username/password is incorrect")
+    st.error("Username or password is incorrect.")
     st.stop()
 
+# ---- Extract Auth Info ----
 name = auth_result["name"]
 username = auth_result["username"]
-
 authenticator.logout("Logout", location="sidebar")
 
-# ---- PAGE CONFIG ----
+# ---- Page Config ----
 st.set_page_config(page_title="Salesmen Spartan Board", layout="centered")
 st.title("Salesmen Spartan Board")
 st.caption("St. Francis de Sales — PRAY FOR US 🙏")
 st.success(f"Welcome, {name}!")
 
-# ---- DATA SETUP ----
+# ---- Setup Data File ----
 today = date.today().isoformat()
 DATA_FILE = "data.json"
 
@@ -52,6 +53,7 @@ else:
 
 user_day_key = f"{username}_{today}"
 
+# ---- Generate Daily Tasks ----
 def generate_tasks():
     all_tasks = [
         "Cold call 10 people you've never talked to",
@@ -70,6 +72,7 @@ def generate_tasks():
     random.shuffle(all_tasks)
     return all_tasks[:5]
 
+# ---- Load or Initialize Tasks ----
 if user_day_key not in saved_data:
     saved_data[user_day_key] = {
         "tasks": generate_tasks(),
@@ -86,6 +89,7 @@ for i, task in enumerate(task_set["tasks"]):
 with open(DATA_FILE, "w") as f:
     json.dump(saved_data, f, indent=2)
 
+# ---- Streak Logic ----
 def calculate_streak(user_data):
     if not user_data:
         return 0
@@ -115,6 +119,7 @@ st.markdown(f"🔥 **Current Streak:** {streak} day{'s' if streak != 1 else ''}"
 completed_count = sum(task_set["completed"])
 st.write(f"✅ You’ve completed {completed_count}/5 tasks today.")
 
+# ---- Leaderboard ----
 st.subheader("🏆 Leaderboard")
 def get_user_streaks(data):
     streaks = {}
@@ -134,5 +139,3 @@ user_streaks = get_user_streaks(saved_data)
 sorted_streaks = sorted(user_streaks.items(), key=lambda x: x[1], reverse=True)
 for rank, (user, s) in enumerate(sorted_streaks, start=1):
     st.write(f"{rank}. **{user.capitalize()}** — 🔥 {s} day{'s' if s != 1 else ''}")
-
-

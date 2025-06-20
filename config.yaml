@@ -14,6 +14,3 @@ cookie:
   name: salesmen_board
   key: abcdef
   expiry_days: 30
-
-preauthorized:
-  emails: []
